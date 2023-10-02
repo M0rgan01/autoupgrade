@@ -32,7 +32,7 @@ if (PHP_SAPI !== 'cli') {
 require_once realpath(dirname(__FILE__) . '/../../modules/autoupgrade') . '/ajax-upgradetabconfig.php';
 $container = autoupgrade_init_container(dirname(__FILE__));
 
-$container->setLogger(new PrestaShop\Module\AutoUpgrade\Log\StreamedLogger());
+$container->setLogger((new PrestaShop\Module\AutoUpgrade\Log\StreamedLogger())->setFilter(\PrestaShop\Module\AutoUpgrade\Log\Logger::DEBUG));
 $controller = new \PrestaShop\Module\AutoUpgrade\TaskRunner\Rollback\AllRollbackTasks($container);
 $controller->setOptions(getopt('', ['backup::']));
 $controller->init();

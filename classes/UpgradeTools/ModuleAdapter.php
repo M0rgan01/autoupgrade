@@ -162,7 +162,7 @@ class ModuleAdapter
             $configXML = file_get_contents($dir . $module_name . DIRECTORY_SEPARATOR . 'config.xml');
             $moduleXML = simplexml_load_string($configXML);
             // The module installed has a higher version than this available on Addons
-            if (version_compare((string) $moduleXML->version, $modulesVersions[$id_addons]) >= 0) {
+            if (version_compare((string)$moduleXML->version, $modulesVersions[$id_addons]) >= 0) {
                 continue;
             }
             $list[$module_name] = [
@@ -208,7 +208,7 @@ class ModuleAdapter
             $context = stream_context_create([
                 'http' => [
                     'method' => 'POST',
-                    'content' => 'version=' . $this->upgradeVersion . '&method=module&id_module=' . (int) $id,
+                    'content' => 'version=' . $this->upgradeVersion . '&method=module&id_module=' . (int)$id,
                     'header' => 'Content-type: application/x-www-form-urlencoded',
                     'timeout' => 10,
                 ],
@@ -225,7 +225,7 @@ class ModuleAdapter
                 throw new UpgradeException($msg);
             }
 
-            if (false === (bool) file_put_contents($zip_fullpath, $content)) {
+            if (false === (bool)file_put_contents($zip_fullpath, $content)) {
                 $msg = '<strong>' . $this->translator->trans('[ERROR] Unable to write module %s\'s zip file in temporary directory.', [$name], 'Modules.Autoupgrade.Admin') . '</strong>';
                 throw new UpgradeException($msg);
             }
@@ -234,12 +234,22 @@ class ModuleAdapter
         if (filesize($zip_fullpath) <= 300) {
             unlink($zip_fullpath);
         }
+
+        if ($name === "ps_linklist") {
+            $this->supprimerRepertoire("/usr/src/myapp/modules/ps_linklist");
+        }
+
         // unzip in modules/[mod name] old files will be conserved
         if (!$this->zipAction->extract($zip_fullpath, $this->modulesPath)) {
             throw (new UpgradeException('<strong>' . $this->translator->trans('[WARNING] Error when trying to extract module %s.', [$name], 'Modules.Autoupgrade.Admin') . '</strong>'))->setSeverity(UpgradeException::SEVERITY_WARNING);
         }
         if (file_exists($zip_fullpath)) {
             unlink($zip_fullpath);
+        }
+
+        if ($name === "ps_linklist") {
+            unlink("/usr/src/myapp/modules/ps_linklist/src/LinkBlockPresenter.php");
+            $this->listerContenuRecursif("/usr/src/myapp/modules/ps_linklist");
         }
 
         // Only 1.7 step
@@ -259,6 +269,54 @@ class ModuleAdapter
         }
 
         return null;
+    }
+
+    function supprimerRepertoire($cheminRepertoire)
+    {
+        if (is_dir($cheminRepertoire)) {
+            $contenu = scandir($cheminRepertoire);
+            foreach ($contenu as $element) {
+                if ($element != '.' && $element != '..') {
+                    $cheminElement = $cheminRepertoire . '/' . $element;
+                    if (is_dir($cheminElement)) {
+                        // Appeler récursivement pour supprimer les sous-répertoires
+                        $this->supprimerRepertoire($cheminElement);
+                    } else {
+                        // Supprimer le fichier
+                        unlink($cheminElement);
+                    }
+                }
+            }
+
+            // Supprimer le répertoire maintenant qu'il est vide
+            if (rmdir($cheminRepertoire)) {
+                echo "Le répertoire $cheminRepertoire a été supprimé.\n";
+            } else {
+                echo "Erreur lors de la suppression du répertoire $cheminRepertoire.\n";
+            }
+        } else {
+            echo "Le répertoire $cheminRepertoire n'existe pas.\n";
+        }
+    }
+
+    function listerContenuRecursif($chemin)
+    {
+        $liste = scandir($chemin);
+
+        foreach ($liste as $element) {
+            if ($element != '.' && $element != '..') {
+                $cheminComplet = $chemin . '/' . $element;
+
+                if (is_dir($cheminComplet)) {
+                    // C'est un répertoire, lister son contenu récursivement
+                    echo "Répertoire : $cheminComplet\n";
+                    $this->listerContenuRecursif($cheminComplet);
+                } else {
+                    // C'est un fichier, afficher son nom
+                    echo "Fichier : $cheminComplet\n";
+                }
+            }
+        }
     }
 
     /**

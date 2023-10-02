@@ -39,7 +39,7 @@ $inputData = json_decode(file_get_contents($inputConfigurationFile), true);
 require_once realpath(dirname(__FILE__) . '/../../modules/autoupgrade') . '/ajax-upgradetabconfig.php';
 $container = autoupgrade_init_container(dirname(__FILE__));
 
-$container->setLogger(new \PrestaShop\Module\AutoUpgrade\Log\StreamedLogger());
+$container->setLogger((new PrestaShop\Module\AutoUpgrade\Log\StreamedLogger())->setFilter(\PrestaShop\Module\AutoUpgrade\Log\Logger::DEBUG));
 $controller = new \PrestaShop\Module\AutoUpgrade\TaskRunner\Miscellaneous\UpdateConfig($container);
 $controller->inputCliParameters($inputData);
 $controller->init();
