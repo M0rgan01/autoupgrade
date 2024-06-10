@@ -148,6 +148,7 @@ class UpgradeModules extends AbstractTask
                 $this->container->getState()->getModulesVersions()
             );
             $modulesToUpgrade = array_reverse($modulesToUpgrade);
+            var_dump($modulesToUpgrade);
             $this->container->getFileConfigurationStorage()->save($modulesToUpgrade, UpgradeFileNames::MODULES_TO_UPGRADE_LIST);
         } catch (UpgradeException $e) {
             $this->handleException($e);

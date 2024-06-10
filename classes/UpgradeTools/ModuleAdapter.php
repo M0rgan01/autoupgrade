@@ -128,6 +128,7 @@ class ModuleAdapter
      */
     public function listModulesToUpgrade(array $modulesFromAddons, array $modulesVersions)
     {
+        var_dump($modulesFromAddons);
         $list = [];
         $dir = $this->modulesPath;
 
@@ -136,6 +137,7 @@ class ModuleAdapter
         }
 
         foreach (scandir($dir) as $module_name) {
+            var_dump($module_name);
             // We don't update autoupgrade module
             if ($module_name === 'autoupgrade') {
                 continue;
@@ -181,6 +183,7 @@ class ModuleAdapter
      */
     public function upgradeModule($id, $name, $isLocalModule = false)
     {
+        var_dump($name);
         $zip_fullpath = $this->tempPath . DIRECTORY_SEPARATOR . $name . '.zip';
         $local_module_used = false;
 

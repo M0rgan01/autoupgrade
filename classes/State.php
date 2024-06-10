@@ -135,6 +135,7 @@ class State
             'method' => 'listing',
             'version' => $this->getInstallVersion(),
         ]);
+        var_dump($this->getInstallVersion());
         $xml_local = $prodRootDir . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'xml' . DIRECTORY_SEPARATOR . 'modules_native_addons.xml';
         $xml = $upgrader->getApiAddons($xml_local, $postData, true);
 
