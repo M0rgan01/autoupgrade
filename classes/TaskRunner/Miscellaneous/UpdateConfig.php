@@ -125,6 +125,9 @@ class UpdateConfig extends AbstractTask
         if (isset($configurationData['PS_AUTOUP_CHANGE_DEFAULT_THEME'])) {
             $config['PS_AUTOUP_CHANGE_DEFAULT_THEME'] = $configurationData['PS_AUTOUP_CHANGE_DEFAULT_THEME'];
         }
+        if (isset($configurationData['PS_AUTOUP_UPDATE_RTL_FILES'])) {
+            $config['PS_AUTOUP_UPDATE_RTL_FILES'] = $configurationData['PS_AUTOUP_UPDATE_RTL_FILES'];
+        }
 
         if (!$this->writeConfig($config)) {
             $this->error = true;
