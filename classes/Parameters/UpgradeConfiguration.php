@@ -34,6 +34,28 @@ use Doctrine\Common\Collections\ArrayCollection;
  */
 class UpgradeConfiguration extends ArrayCollection
 {
+
+    /**
+     * @var string[]
+     */
+    const CONFIGURATION_LIST = [
+        'channel',
+        'private_release_link',
+        'private_release_md5',
+        'private_allow_major',
+        'archive.filename',
+        'directory.version_num',
+        'skip_backup',
+        'PS_AUTOUP_PERFORMANCE',
+        'PS_AUTOUP_CUSTOM_MOD_DESACT',
+        'PS_AUTOUP_UPDATE_DEFAULT_THEME',
+        'PS_AUTOUP_CHANGE_DEFAULT_THEME',
+        'PS_AUTOUP_UPDATE_RTL_FILES',
+        'PS_AUTOUP_KEEP_MAILS',
+        'PS_AUTOUP_BACKUP',
+        'PS_AUTOUP_KEEP_IMAGES',
+    ];
+
     /**
      * Performance settings, if your server has a low memory size, lower these values.
      *
