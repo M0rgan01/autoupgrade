@@ -564,6 +564,20 @@ class AdminSelfUpgradeController extends ModuleAdminController
                 ->getJson()
         );
 
+        $this->addAssets();
+
         return parent::initContent();
+    }
+
+    private function addAssets()
+    {
+        $this->addJs($this->prodRootDir . "modules/autoupgrade/js/jquery-1.6.2.min.js");
+        $this->addJs($this->prodRootDir . "modules/autoupgrade/js/sentry-8.2.1.min.js");
+
+        $this->addCss($this->prodRootDir . "modules/autoupgrade/css/styles.css");
+
+        $this->addJs($this->prodRootDir . "modules/autoupgrade/js/jquery.xml2json.js");
+        $this->addJs($this->prodRootDir . "modules/autoupgrade/js/upgrade.js");
+        $this->addJs($this->prodRootDir . "modules/autoupgrade/js/sentry.js");
     }
 }
