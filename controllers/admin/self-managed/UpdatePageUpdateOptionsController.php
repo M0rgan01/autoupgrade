@@ -27,7 +27,17 @@
 
 namespace PrestaShop\Module\AutoUpgrade\Controller;
 
+use Exception;
+use PrestaShop\Module\AutoUpgrade\Router\Routes;
+use PrestaShop\Module\AutoUpgrade\Services\DistributionApiService;
+use PrestaShop\Module\AutoUpgrade\Services\PhpVersionResolverService;
+use PrestaShop\Module\AutoUpgrade\Task\Miscellaneous\UpdateConfig;
 use PrestaShop\Module\AutoUpgrade\Twig\UpdateSteps;
+use PrestaShop\Module\AutoUpgrade\UpgradeContainer;
+use PrestaShop\Module\AutoUpgrade\Upgrader;
+use PrestaShop\Module\AutoUpgrade\UpgradeSelfCheck;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Twig\Error\LoaderError;
 use Twig\Error\RuntimeError;
 use Twig\Error\SyntaxError;
@@ -71,5 +81,24 @@ class UpdatePageUpdateOptionsController extends AbstractPageController
                 'disable_all_overrides' => false,
             ]
         );
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function save(): string
+    {
+        $controller = new UpdateConfig($this->upgradeContainer);
+        $controller->init();
+        $controller->run();
+
+        return new Response();
+    }
+
+    public function submit(): JsonResponse
+    {
+        return new JsonResponse([
+            'next_route' => Routes::UPDATE_STEP_UPDATE_OPTIONS,
+        ]);
     }
 }
