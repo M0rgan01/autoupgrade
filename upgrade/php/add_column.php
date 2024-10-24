@@ -30,8 +30,10 @@ function add_column($table, $column, $parameters)
     if (!empty($column_exists)) {
         // If it already exists, we will modify the structure
         Db::getInstance()->execute('ALTER TABLE `' . _DB_PREFIX_ . $table . '` CHANGE `' . $column . '` `' . $column . '` ' . $parameters);
+        // return ;
     } else {
         // Otherwise, we add it
         Db::getInstance()->execute('ALTER TABLE `' . _DB_PREFIX_ . $table . '` ADD `' . $column . '` ' . $parameters);
+        // return Db::getInstance()->getMsgError() . (string) Db::getInstance()->getNumberError();
     }
 }

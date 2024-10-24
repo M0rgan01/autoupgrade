@@ -446,7 +446,9 @@ abstract class CoreUpgrader
         $phpString = $this->extractPhpStringFromQuery($query);
         $php = explode('::', $phpString);
         $stringParameters = $this->extractParametersAsString($phpString);
+        $this->logger->debug('$stringParameters:' . json_encode($stringParameters));
         $parameters = $this->extractParametersFromString($stringParameters);
+        $this->logger->debug('$parameters:' . json_encode($parameters));
 
         // reset phpRes to a null value
         $phpRes = null;
@@ -462,7 +464,9 @@ abstract class CoreUpgrader
             }
 
             require_once $pathToPhpDirectory . strtolower($func_name) . '.php';
+            $this->logger->debug('$func_name:' . json_encode($func_name));
             $phpRes = call_user_func_array($func_name, $parameters);
+            $this->logger->debug('$phpRes:' . json_encode($phpRes));
         }
         // Or an object method
         else {
