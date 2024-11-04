@@ -14,13 +14,19 @@
     <div class="check-requirements__list">
       {% for error in requirements.errors %}
         <div class="check-requirements__requirement check-requirements__requirement--error">
-          {{ error }}
+          {{ error.message|raw }}
+            {% if error.list is defined %}
+                {{ error.list|join(', ') }}
+            {% endif %}
         </div>
       {% endfor %}
 
       {% for warning in requirements.warnings %}
         <div class="check-requirements__requirement check-requirements__requirement--warning">
-          {{ warning }}
+          {{ warning.message|raw }}
+            {% if error.list is defined %}
+                {{ error.list|join(', ') }}
+            {% endif %}
         </div>
       {% endfor %}
     </div>

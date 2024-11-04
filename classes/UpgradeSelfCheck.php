@@ -29,7 +29,9 @@ namespace PrestaShop\Module\AutoUpgrade;
 
 use Configuration;
 use ConfigurationTest;
+use Context;
 use Exception;
+use PrestaShop\Module\AutoUpgrade\Exceptions\DistributionApiException;
 use PrestaShop\Module\AutoUpgrade\Exceptions\UpgradeException;
 use PrestaShop\Module\AutoUpgrade\Parameters\UpgradeConfiguration;
 use PrestaShop\Module\AutoUpgrade\Services\PhpVersionResolverService;
@@ -197,98 +199,139 @@ class UpgradeSelfCheck
     /**
      * @param int $requirement
      *
-     * @return string
+     * @return array{'message': string, 'list'?: array<string>}
+     *
+     * @throws UpgradeException
+     * @throws DistributionApiException
      */
-    public function getRequirementWording(int $requirement): string
+    public function getRequirementWording(int $requirement, bool $isWebVersion = false): array
     {
         $version = $this->state->getDestinationVersion();
         $phpCompatibilityRange = $this->phpRequirementService->getPhpCompatibilityRange($version);
 
         switch ($requirement) {
             case self::PHP_COMPATIBILITY_INVALID:
-                return $this->translator->trans(
-                    'Your current PHP version isn\'t compatible with your PrestaShop version. (Expected: %s - %s | Current: %s)',
-                    [$phpCompatibilityRange['php_min_version'], $phpCompatibilityRange['php_max_version'], $phpCompatibilityRange['php_current_version']]
-                );
-
+                return [
+                    'message' => $this->translator->trans(
+                        'Your current PHP version isn\'t compatible with your PrestaShop version. (Expected: %s - %s | Current: %s)',
+                        [$phpCompatibilityRange['php_min_version'], $phpCompatibilityRange['php_max_version'], $phpCompatibilityRange['php_current_version']]
+                    ),
+                ];
             case self::ROOT_DIRECTORY_NOT_WRITABLE:
-                return $this->translator->trans(
-                    'Your store\'s root directory isn\'t writable. Provide write access to the user running PHP with appropriate permission & ownership.'
-                );
+                return [
+                    'message' => $this->translator->trans('Your store\'s root directory isn\'t writable. Provide write access to the user running PHP with appropriate permission & ownership.'),
+                ];
 
             case self::ADMIN_UPGRADE_DIRECTORY_NOT_WRITABLE:
-                return $this->translator->trans(
-                    'The "/admin/autoupgrade" directory isn\'t writable. Provide write access to the user running PHP with appropriate permission & ownership.'
-                );
+                return [
+                    'message' => $this->translator->trans('The "/admin/autoupgrade" directory isn\'t writable. Provide write access to the user running PHP with appropriate permission & ownership.'),
+                ];
 
             case self::SAFE_MODE_ENABLED:
-                return $this->translator->trans('PHP\'s "Safe mode" needs to be disabled.');
+                return [
+                    'message' => $this->translator->trans('PHP\'s "Safe mode" needs to be disabled.'),
+                ];
 
             case self::F_OPEN_AND_CURL_DISABLED:
-                return $this->translator->trans(
-                    'Files can\'t be downloaded. Enable PHP\'s "allow_url_fopen" option or install PHP extension "cURL".'
-                );
-
+                return [
+                    'message' => $this->translator->trans('Files can\'t be downloaded. Enable PHP\'s "allow_url_fopen" option or install PHP extension "cURL".'),
+                ];
             case self::ZIP_DISABLED:
-                return $this->translator->trans('Missing PHP extension "zip".');
-
+                return [
+                    'message' => $this->translator->trans('Missing PHP extension "zip".'),
+                ];
             case self::MAINTENANCE_MODE_DISABLED:
-                return $this->translator->trans(
-                    'Maintenance mode needs to be enabled. Enable maintenance mode and add your maintenance IP.'
-                );
+                if ($isWebVersion) {
+                    $maintenanceLink = Context::getContext()->link->getAdminLink('AdminMaintenance');
+                    $params = [
+                        '[1]' => '<a href=' . $maintenanceLink . ' target="_blank">',
+                        '[/1]' => '</a>',
+                    ];
+                } else {
+                    $params = [
+                        '[1]' => '',
+                        '[/1]' => '',
+                    ];
+                }
 
+                return [
+                    'message' => $this->translator->trans('Maintenance mode needs to be enabled. Enable maintenance mode and add your maintenance IP in [1]Shop parameters > General > Maintenance[/1].', $params),
+                ];
             case self::CACHE_ENABLED:
-                return $this->translator->trans('PrestaShop\'s caching features needs to be disabled.');
+                return [
+                    'message' => $this->translator->trans('PrestaShop\'s caching features needs to be disabled.'),
+                ];
 
             case self::MAX_EXECUTION_TIME_VALUE_INCORRECT:
-                return $this->translator->trans(
-                    'PHP\'s max_execution_time setting needs to have a high value or needs to be disabled entirely (current value: %s seconds)',
-                    [$this->getMaxExecutionTime()]
-                );
+                return [
+                    'message' => $this->translator->trans(
+                        'PHP\'s max_execution_time setting needs to have a high value or needs to be disabled entirely (current value: %s seconds)',
+                        [$this->getMaxExecutionTime()]
+                    ),
+                ];
 
             case self::APACHE_MOD_REWRITE_DISABLED:
-                return $this->translator->trans('Apache mod_rewrite needs to be enabled.');
+                return [
+                    'message' => $this->translator->trans('Apache mod_rewrite needs to be enabled.'),
+                ];
 
             case self::NOT_LOADED_PHP_EXTENSIONS_LIST_NOT_EMPTY:
-                return $this->translator->trans('The following PHP extensions need to be installed:');
+                return [
+                    'message' => $this->translator->trans('The following PHP extensions need to be installed: '),
+                    'list' => $this->getNotLoadedPhpExtensions(),
+                ];
 
             case self::NOT_EXIST_PHP_FUNCTIONS_LIST_NOT_EMPTY:
-                return $this->translator->trans('The following PHP functions need to be allowed:');
+                return [
+                    'message' => $this->translator->trans('The following PHP functions need to be allowed: '),
+                    'list' => $this->getNotExistsPhpFunctions(),
+                ];
 
             case self::MEMORY_LIMIT_INVALID:
-                return $this->translator->trans('PHP memory_limit needs to be greater than 256 MB.');
+                return [
+                    'message' => $this->translator->trans('PHP memory_limit needs to be greater than 256 MB.'),
+                ];
 
             case self::PHP_FILE_UPLOADS_CONFIGURATION_DISABLED:
-                return $this->translator->trans('PHP file_uploads configuration needs to be enabled.');
-
+                return [
+                    'message' => $this->translator->trans('PHP file_uploads configuration needs to be enabled.'),
+                ];
             case self::KEY_GENERATION_INVALID:
-                return $this->translator->trans(
-                    'Unable to generate private keys using openssl_pkey_new. Check your OpenSSL configuration, especially the path to openssl.cafile.'
-                );
+                return [
+                    'message' => $this->translator->trans('Unable to generate private keys using openssl_pkey_new. Check your OpenSSL configuration, especially the path to openssl.cafile.'),
+                ];
 
             case self::NOT_WRITING_DIRECTORY_LIST_NOT_EMPTY:
-                return $this->translator->trans(
-                    'It\'s not possible to write in the following folders, please provide write access to the user running PHP with appropriate permission & ownership:'
-                );
+                return [
+                    'message' => $this->translator->trans('It\'s not possible to write in the following folders, please provide write access to the user running PHP with appropriate permission & ownership: '),
+                    'list' => $this->getNotWritingDirectories(),
+                ];
 
             case self::SHOP_VERSION_NOT_MATCHING_VERSION_IN_DATABASE:
-                return $this->translator->trans(
-                    'The version of PrestaShop does not match the one stored in database. Your database structure may not be up-to-date and/or the value of PS_VERSION_DB needs to be updated in the configuration table.'
-                );
+                return [
+                    'message' => $this->translator->trans('The version of PrestaShop does not match the one stored in database. Your database structure may not be up-to-date and/or the value of PS_VERSION_DB needs to be updated in the configuration table.'),
+                ];
 
             case self::MODULE_VERSION_IS_OUT_OF_DATE:
-                return $this->translator->trans('Your current version of the module is outdated.');
+                return [
+                    'message' => $this->translator->trans('Your current version of the module is outdated.'),
+                ];
 
             case self::PHP_COMPATIBILITY_UNKNOWN:
-                return $this->translator->trans('We were unable to check your PHP compatibility with the destination PrestaShop version.');
+                return [
+                    'message' => $this->translator->trans('We were unable to check your PHP compatibility with the destination PrestaShop version.'),
+                ];
 
             case self::TEMPERED_FILES_LIST_NOT_EMPTY:
-                return $this->translator->trans(
-                    'Some core files have been altered, customization made on these files will be lost during the update:'
-                );
+                return [
+                    'message' => $this->translator->trans('Some core files have been altered, customization made on these files will be lost during the update: '),
+                    'list' => $this->getTamperedFiles(),
+                ];
 
             default:
-                return $this->translator->trans('Unknown requirement.');
+                return [
+                    'message' => $this->translator->trans('Unknown requirement.'),
+                ];
         }
     }
 

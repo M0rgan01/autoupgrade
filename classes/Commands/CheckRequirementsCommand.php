@@ -28,6 +28,8 @@
 namespace PrestaShop\Module\AutoUpgrade\Commands;
 
 use Exception;
+use PrestaShop\Module\AutoUpgrade\Exceptions\DistributionApiException;
+use PrestaShop\Module\AutoUpgrade\Exceptions\UpgradeException;
 use PrestaShop\Module\AutoUpgrade\Services\DistributionApiService;
 use PrestaShop\Module\AutoUpgrade\Services\PhpVersionResolverService;
 use PrestaShop\Module\AutoUpgrade\Task\ExitCode;
@@ -115,47 +117,29 @@ class CheckRequirementsCommand extends AbstractCommand
     private function processRequirementErrors(): void
     {
         foreach ($this->upgradeSelfCheck->getErrors() as $error => $value) {
-            switch ($error) {
-               case UpgradeSelfCheck::NOT_LOADED_PHP_EXTENSIONS_LIST_NOT_EMPTY:
-                   $notLoadedPhpExtensions = $this->upgradeSelfCheck->getNotLoadedPhpExtensions();
-                   $this->writeError($this->upgradeSelfCheck->getRequirementWording($error));
-                   foreach ($notLoadedPhpExtensions as $notLoadedPhpExtension) {
-                       $this->output->writeln('    ' . $notLoadedPhpExtension);
-                   }
-                   break;
-               case UpgradeSelfCheck::NOT_EXIST_PHP_FUNCTIONS_LIST_NOT_EMPTY:
-                   $notExistsPhpFunctions = $this->upgradeSelfCheck->getNotExistsPhpFunctions();
-                   $this->writeError($this->upgradeSelfCheck->getRequirementWording($error));
-                   foreach ($notExistsPhpFunctions as $notExistsPhpFunction) {
-                       $this->output->writeln('    ' . $notExistsPhpFunction);
-                   }
-                   break;
-               case UpgradeSelfCheck::NOT_WRITING_DIRECTORY_LIST_NOT_EMPTY:
-                   $notWritingDirectories = $this->upgradeSelfCheck->getNotWritingDirectories();
-                   $this->writeError($this->upgradeSelfCheck->getRequirementWording($error));
-                   foreach ($notWritingDirectories as $notWritingDirectory) {
-                       $this->output->writeln('    ' . $notWritingDirectory);
-                   }
-                   break;
-               default:
-                   $this->writeError($this->upgradeSelfCheck->getRequirementWording($error));
-           }
+            $wording = $this->upgradeSelfCheck->getRequirementWording($error);
+            $this->writeError($wording['message']);
+            if (isset($wording['list'])) {
+                foreach ($wording['list'] as $item) {
+                    $this->output->writeln('    ' . $item);
+                }
+            }
         }
     }
 
+    /**
+     * @throws DistributionApiException
+     * @throws UpgradeException
+     */
     private function processRequirementWarnings(): void
     {
         foreach ($this->upgradeSelfCheck->getWarnings() as $warning => $value) {
-            switch ($warning) {
-                case UpgradeSelfCheck::TEMPERED_FILES_LIST_NOT_EMPTY:
-                    $tamperedFiles = $this->upgradeSelfCheck->getTamperedFiles();
-                    $this->writeWarning($this->upgradeSelfCheck->getRequirementWording($warning));
-                    foreach ($tamperedFiles as $tamperedFile) {
-                        $this->output->writeln('    ' . $tamperedFile);
-                    }
-                    break;
-                default:
-                    $this->writeWarning($this->upgradeSelfCheck->getRequirementWording($warning));
+            $wording = $this->upgradeSelfCheck->getRequirementWording($warning);
+            $this->writeWarning($wording['message']);
+            if (isset($wording['list'])) {
+                foreach ($wording['list'] as $item) {
+                    $this->output->writeln('    ' . $item);
+                }
             }
         }
     }
