@@ -65,50 +65,55 @@ class CheckRequirementsCommand extends AbstractCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output): ?int
     {
-        $this->setupContainer($input, $output);
-        $this->output = $output;
+        try {
+            $this->setupContainer($input, $output);
+            $this->output = $output;
 
-        $configPath = $input->getOption('config-file-path');
-        $exitCode = $this->loadConfiguration($configPath, $this->upgradeContainer);
-        if ($exitCode !== ExitCode::SUCCESS) {
-            return $exitCode;
+            $configPath = $input->getOption('config-file-path');
+            $exitCode = $this->loadConfiguration($configPath, $this->upgradeContainer);
+            if ($exitCode !== ExitCode::SUCCESS) {
+                return $exitCode;
+            }
+            $this->logger->debug('Configuration loaded successfully.');
+            $moduleConfigPath = _PS_ADMIN_DIR_ . DIRECTORY_SEPARATOR . self::MODULE_CONFIG_DIR;
+
+            $this->upgradeContainer->initPrestaShopAutoloader();
+            $this->upgradeContainer->initPrestaShopCore();
+
+            $distributionApiService = new DistributionApiService();
+            $phpVersionResolverService = new PhpVersionResolverService(
+                $distributionApiService,
+                $this->upgradeContainer->getFileLoader(),
+                $this->upgradeContainer->getState()->getCurrentVersion()
+            );
+
+            $this->upgradeSelfCheck = new UpgradeSelfCheck(
+                $this->upgradeContainer->getUpgrader(),
+                $this->upgradeContainer->getState(),
+                $this->upgradeContainer->getUpgradeConfiguration(),
+                $this->upgradeContainer->getPrestaShopConfiguration(),
+                $this->upgradeContainer->getTranslator(),
+                $phpVersionResolverService,
+                $this->upgradeContainer->getChecksumCompare(),
+                _PS_ROOT_DIR_,
+                _PS_ADMIN_DIR_,
+                $moduleConfigPath
+            );
+
+            $output->writeln('Result of prerequisite checks:');
+            $this->exitCode = ExitCode::SUCCESS;
+            $this->processRequirementWarnings();
+            $this->processRequirementErrors();
+
+            if ($this->exitCode === ExitCode::SUCCESS) {
+                $output->writeln('<success>✔</success> All prerequisites meet the conditions for an update.');
+            }
+
+            return $this->exitCode;
+        } catch (Exception $e) {
+            $this->logger->error('An error occurred during the check requirements process');
+            throw $e;
         }
-        $this->logger->debug('Configuration loaded successfully.');
-        $moduleConfigPath = _PS_ADMIN_DIR_ . DIRECTORY_SEPARATOR . self::MODULE_CONFIG_DIR;
-
-        $this->upgradeContainer->initPrestaShopAutoloader();
-        $this->upgradeContainer->initPrestaShopCore();
-
-        $distributionApiService = new DistributionApiService();
-        $phpVersionResolverService = new PhpVersionResolverService(
-            $distributionApiService,
-            $this->upgradeContainer->getFileLoader(),
-            $this->upgradeContainer->getState()->getCurrentVersion()
-        );
-
-        $this->upgradeSelfCheck = new UpgradeSelfCheck(
-            $this->upgradeContainer->getUpgrader(),
-            $this->upgradeContainer->getState(),
-            $this->upgradeContainer->getUpgradeConfiguration(),
-            $this->upgradeContainer->getPrestaShopConfiguration(),
-            $this->upgradeContainer->getTranslator(),
-            $phpVersionResolverService,
-            $this->upgradeContainer->getChecksumCompare(),
-            _PS_ROOT_DIR_,
-            _PS_ADMIN_DIR_,
-            $moduleConfigPath
-        );
-
-        $output->writeln('Result of prerequisite checks:');
-        $this->exitCode = ExitCode::SUCCESS;
-        $this->processRequirementWarnings();
-        $this->processRequirementErrors();
-
-        if ($this->exitCode === ExitCode::SUCCESS) {
-            $output->writeln('<success>✔</success> All prerequisites meet the conditions for an update.');
-        }
-
-        return $this->exitCode;
     }
 
     /**

@@ -28,6 +28,7 @@
 namespace PrestaShop\Module\AutoUpgrade\Commands;
 
 use Exception;
+use InvalidArgumentException;
 use PrestaShop\Module\AutoUpgrade\DeveloperDocumentation;
 use PrestaShop\Module\AutoUpgrade\Parameters\UpgradeConfiguration;
 use PrestaShop\Module\AutoUpgrade\Task\ExitCode;
@@ -70,9 +71,7 @@ class UpdateCommand extends AbstractCommand
         $noChainMode = $input->getOption('no-chain');
 
         if ($chainMode && $noChainMode) {
-            $this->logger->error('The chain and no-chain options cannot be active at the same time');
-
-            return ExitCode::FAIL;
+            throw new InvalidArgumentException('The chain and no-chain options cannot be active at the same time');
         }
 
         try {
@@ -106,9 +105,8 @@ class UpdateCommand extends AbstractCommand
 
             return $this->chainCommand($output);
         } catch (Exception $e) {
-            $this->logger->error('An error occurred during the update process: ' . $e->getMessage());
-
-            return ExitCode::FAIL;
+            $this->logger->error('An error occurred during the update process');
+            throw $e;
         }
     }
 
@@ -134,9 +132,7 @@ class UpdateCommand extends AbstractCommand
                 $this->logger->debug('Data parameter found: ' . $data);
             }
             if (empty($action) || empty($data)) {
-                $this->logger->error('The command does not contain the necessary information to continue the update process.');
-
-                return ExitCode::FAIL;
+                throw new InvalidArgumentException('The command does not contain the necessary information to continue the update process.');
             }
             $new_string = str_replace('INFO - $ ', '', $lastInfo);
             $decorationParam = $output->isDecorated() ? ' --ansi' : '';

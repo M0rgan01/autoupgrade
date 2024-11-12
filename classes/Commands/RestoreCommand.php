@@ -28,14 +28,16 @@
 namespace PrestaShop\Module\AutoUpgrade\Commands;
 
 use Exception;
-use PrestaShop\Module\AutoUpgrade\Task\ExitCode;
+use InvalidArgumentException;
+use PrestaShop\Module\AutoUpgrade\Exceptions\BackupException;
 use PrestaShop\Module\AutoUpgrade\Task\Runner\AllRestoreTasks;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Question\ChoiceQuestion;
 
-class RestoreCommand extends AbstractCommand
+class RestoreCommand extends AbstractBackupCommand
 {
     /**
      * @var string
@@ -45,9 +47,9 @@ class RestoreCommand extends AbstractCommand
     protected function configure(): void
     {
         $this
-            ->setDescription('Restore your store.')
+            ->setDescription('Restore the store to a previous state from a backup file.')
             ->setHelp(
-                'This command allows you to restore your store from a backup.' .
+                'This command allows you to restore the store to a previous state from a backup file.' .
                 'See https://devdocs.prestashop-project.org/8/basics/keeping-up-to-date/upgrade-module/upgrade-cli/#rollback-cli for more details'
             )
             ->addArgument('admin-dir', InputArgument::REQUIRED, 'The admin directory name.')
@@ -65,9 +67,11 @@ class RestoreCommand extends AbstractCommand
             $backup = $input->getOption('backup');
 
             if (!$backup) {
-                $this->logger->error("The '--backup' option is required.");
+                if (!$input->isInteractive()) {
+                    throw new InvalidArgumentException("The '--backup' option is required.");
+                }
 
-                return ExitCode::FAIL;
+                $backup = $this->selectBackupInteractive($input, $output);
             }
 
             $controller = new AllRestoreTasks($this->upgradeContainer);
@@ -80,9 +84,59 @@ class RestoreCommand extends AbstractCommand
 
             return $exitCode;
         } catch (Exception $e) {
-            $this->logger->error('An error occurred during the restoration process: ' . $e->getMessage());
-
-            return ExitCode::FAIL;
+            $this->logger->error('An error occurred during the restoration process');
+            throw $e;
         }
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function selectBackupInteractive(InputInterface $input, OutputInterface $output): string
+    {
+        $backups = $this->getBackups();
+
+        if (empty($backups)) {
+            throw new BackupException('No store backup files found in your dedicated directory');
+        }
+
+        $formattedBackups = array_map(function ($backupName) {
+            return $this->parseBackupMetadata($backupName);
+        }, $backups);
+
+        // Most recent first
+        usort($formattedBackups, function ($a, $b) {
+            return $b['timestamp'] <=> $a['timestamp'];
+        });
+
+        $rows = array_map(function ($backup) {
+            return $this->formatBackupRow($backup);
+        }, $formattedBackups);
+
+        $helper = $this->getHelper('question');
+        $question = new ChoiceQuestion(
+            'Please select your backup:',
+            $rows
+        );
+
+        $answer = $helper->ask($input, $output, $question);
+        $key = array_search($answer, $rows);
+        if ($key === false) {
+            throw new BackupException('Invalid backup selection.');
+        }
+
+        return $formattedBackups[$key]['filename'];
+    }
+
+    /**
+     * Formats a backup row for display in the selection prompt.
+     *
+     * @param array{datetime: string, version:string, filename: string} $backups
+     *
+     * @return string
+     */
+    private function formatBackupRow(array $backups): string
+    {
+        return sprintf('Date: %s, Version: %s, File name: %s', $backups['datetime'], $backups['version'], $backups['filename']);
     }
 }

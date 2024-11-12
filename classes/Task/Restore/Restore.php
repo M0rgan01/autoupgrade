@@ -75,7 +75,7 @@ class Restore extends AbstractTask
         if (!is_file($this->container->getProperty(UpgradeContainer::BACKUP_PATH) . DIRECTORY_SEPARATOR . $this->container->getState()->getRestoreFilesFilename())) {
             $this->next = TaskName::TASK_ERROR;
             $this->setErrorFlag();
-            $this->logger->error($this->translator->trans('[ERROR] File %s is missing: unable to restore files. Operation aborted.', [$this->container->getState()->getRestoreFilesFilename()]));
+            $this->logger->error($this->translator->trans('File %s is missing: unable to restore files. Operation aborted.', [$this->container->getState()->getRestoreFilesFilename()]));
 
             return ExitCode::FAIL;
         }
@@ -92,7 +92,7 @@ class Restore extends AbstractTask
         if (count($restoreDbFilenames) == 0) {
             $this->next = TaskName::TASK_ERROR;
             $this->setErrorFlag();
-            $this->logger->error($this->translator->trans('[ERROR] No backup database files found: it would be impossible to restore the database. Operation aborted.'));
+            $this->logger->error($this->translator->trans('No backup database files found: it would be impossible to restore the database. Operation aborted.'));
 
             return ExitCode::FAIL;
         }

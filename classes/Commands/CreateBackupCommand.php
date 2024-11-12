@@ -28,7 +28,6 @@
 namespace PrestaShop\Module\AutoUpgrade\Commands;
 
 use Exception;
-use PrestaShop\Module\AutoUpgrade\Task\ExitCode;
 use PrestaShop\Module\AutoUpgrade\Task\Runner\AllBackupTasks;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -64,9 +63,8 @@ class CreateBackupCommand extends AbstractCommand
 
             return $exitCode;
         } catch (Exception $e) {
-            $this->logger->error('An error occurred during the backup process: ' . $e->getMessage());
-
-            return ExitCode::FAIL;
+            $this->logger->error('An error occurred during the  backup creation process');
+            throw $e;
         }
     }
 }

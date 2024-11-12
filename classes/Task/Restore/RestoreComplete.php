@@ -42,7 +42,7 @@ class RestoreComplete extends AbstractTask
 
     public function run(): int
     {
-        $this->logger->info($this->translator->trans('Restoration process done. Congratulations! You can now reactivate your shop.'));
+        $this->logger->info($this->translator->trans('Restoration process done. Congratulations! You can now reactivate your store.'));
         $this->next = TaskName::TASK_COMPLETE;
 
         $this->container->getFileConfigurationStorage()->cleanAllRestoreFiles();

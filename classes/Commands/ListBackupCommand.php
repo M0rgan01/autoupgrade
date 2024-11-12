@@ -27,17 +27,15 @@
 
 namespace PrestaShop\Module\AutoUpgrade\Commands;
 
-use DateTime;
 use Exception;
-use PrestaShop\Module\AutoUpgrade\Backup\BackupFinder;
+use PrestaShop\Module\AutoUpgrade\Exceptions\BackupException;
 use PrestaShop\Module\AutoUpgrade\Task\ExitCode;
-use PrestaShop\Module\AutoUpgrade\UpgradeContainer;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class ListBackupCommand extends AbstractCommand
+class ListBackupCommand extends AbstractBackupCommand
 {
     /** @var string */
     protected static $defaultName = 'backup:list';
@@ -58,8 +56,7 @@ class ListBackupCommand extends AbstractCommand
         try {
             $this->setupContainer($input, $output);
 
-            $backupPath = $this->upgradeContainer->getProperty(UpgradeContainer::BACKUP_PATH);
-            $backups = (new BackupFinder($backupPath))->getAvailableBackups();
+            $backups = $this->getBackups();
 
             if (empty($backups)) {
                 $this->logger->info('No store backup files found in your dedicated directory');
@@ -77,9 +74,8 @@ class ListBackupCommand extends AbstractCommand
 
             return ExitCode::SUCCESS;
         } catch (Exception $e) {
-            $this->logger->error('An error occurred during the backup process: ' . $e->getMessage());
-
-            return ExitCode::FAIL;
+            $this->logger->error('An error occurred during the  backup listing process');
+            throw $e;
         }
     }
 
@@ -87,39 +83,23 @@ class ListBackupCommand extends AbstractCommand
      * @param string[] $backups
      *
      * @return array<int, array{datetime: string, version:string, filename: string}>
+     *
+     * @throws BackupException
      */
     private function getRows(array $backups): array
     {
         $rows = [];
-        foreach ($backups as $backup) {
-            $filename = $backup;
-            $pattern = '/V(\d+(\.\d+){1,3})_([0-9]{8})-([0-9]{6})/';
-            if (preg_match($pattern, $filename, $matches)) {
-                $version = $matches[1];
-                $datePart = $matches[3];
-                $timePart = $matches[4];
-
-                $dateTime = DateTime::createFromFormat('Ymd His', $datePart . ' ' . $timePart);
-
-                $rows[] =
-                    [
-                        'datetime' => $dateTime->getTimestamp(),
-                        'version' => $version,
-                        'filename' => $filename,
-                    ];
-            }
+        foreach ($backups as $backupName) {
+            $rows[] = $this->parseBackupMetadata($backupName);
         }
 
         // Most recent first
         usort($rows, function ($a, $b) {
-            return $b['datetime'] <=> $a['datetime'];
+            return $b['timestamp'] <=> $a['timestamp'];
         });
 
-        setlocale(LC_TIME, '');
-        // Reassigning dates format
-        foreach ($rows as $key => $row) {
-            $formattedDateTime = strftime('%x %X', $row['datetime']);
-            $rows[$key]['datetime'] = $formattedDateTime;
+        foreach ($rows as &$row) {
+            unset($row['timestamp']);
         }
 
         return $rows;
