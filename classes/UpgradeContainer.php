@@ -969,6 +969,11 @@ class UpgradeContainer
 
         $id_employee = !empty($_COOKIE['id_employee']) ? $_COOKIE['id_employee'] : 1;
         \Context::getContext()->employee = new \Employee((int) $id_employee);
+
+        // During a CLI process, we reset the original time zone, which was modified with the call to CORE
+        if (php_sapi_name() === 'cli') {
+            date_default_timezone_set($this->getLogsState()->getTimeZone());
+        }
     }
 
     /**

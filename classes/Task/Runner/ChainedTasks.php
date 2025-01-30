@@ -29,6 +29,8 @@ namespace PrestaShop\Module\AutoUpgrade\Task\Runner;
 
 use Exception;
 use PrestaShop\Module\AutoUpgrade\AjaxResponse;
+use PrestaShop\Module\AutoUpgrade\DbWrapper;
+use PrestaShop\Module\AutoUpgrade\Exceptions\UpdateDatabaseException;
 use PrestaShop\Module\AutoUpgrade\Task\AbstractTask;
 use PrestaShop\Module\AutoUpgrade\Task\TaskName;
 use PrestaShop\Module\AutoUpgrade\UpgradeTools\TaskRepository;
@@ -112,21 +114,41 @@ abstract class ChainedTasks extends AbstractTask
         return false;
     }
 
+    /**
+     * @throws Exception
+     */
     private function setupLogging(): void
     {
+        $logsState = $this->container->getLogsState();
+        $timeZone = $logsState->getTimeZone();
+        if ($timeZone) {
+            date_default_timezone_set($timeZone);
+        }
+
         $initializationSteps = [TaskName::TASK_BACKUP_INITIALIZATION, TaskName::TASK_UPDATE_INITIALIZATION, TaskName::TASK_RESTORE_INITIALIZATION];
 
         if (in_array($this->step, $initializationSteps)) {
+            if (php_sapi_name() !== 'cli') {
+                $this->container->initPrestaShopCore();
+                try {
+                    $timeZone = DbWrapper::getValue('SELECT `value` FROM `' . _DB_PREFIX_ . 'configuration` WHERE `name` = \'PS_TIMEZONE\'');
+                } catch (UpdateDatabaseException $e) {
+                    $timeZone = date_default_timezone_get();
+                }
+                $logsState->setTimeZone($timeZone);
+                date_default_timezone_set($timeZone);
+            }
+
             $timestamp = date('Y-m-d-His');
             switch ($this->step) {
                 case TaskName::TASK_BACKUP_INITIALIZATION:
-                    $this->container->getLogsState()->setActiveBackupLogFromDateTime($timestamp);
+                    $logsState->setActiveBackupLogFromDateTime($timestamp);
                     break;
                 case TaskName::TASK_RESTORE_INITIALIZATION:
-                    $this->container->getLogsState()->setActiveRestoreLogFromDateTime($timestamp);
+                    $logsState->setActiveRestoreLogFromDateTime($timestamp);
                     break;
                 case TaskName::TASK_UPDATE_INITIALIZATION:
-                    $this->container->getLogsState()->setActiveUpdateLogFromDateTime($timestamp);
+                    $logsState->setActiveUpdateLogFromDateTime($timestamp);
                     break;
             }
         }

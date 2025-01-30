@@ -234,9 +234,6 @@ abstract class CoreUpgrader
         if (!defined('_PS_INSTALLER_PHP_UPGRADE_DIR_')) {
             define('_PS_INSTALLER_PHP_UPGRADE_DIR_', $this->pathToUpgradeScripts . 'php/');
         }
-        if (function_exists('date_default_timezone_set')) {
-            date_default_timezone_set('Europe/Paris');
-        }
 
         // if _PS_ROOT_DIR_ is defined, use it instead of "guessing" the module dir.
         if (defined('_PS_ROOT_DIR_') && !defined('_PS_MODULE_DIR_')) {

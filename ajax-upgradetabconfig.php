@@ -24,13 +24,8 @@
  * @copyright Since 2007 PrestaShop SA and Contributors
  * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License 3.0 (AFL-3.0)
  */
-use PrestaShop\Module\AutoUpgrade\Tools14;
 
-if (function_exists('date_default_timezone_set')) {
-    // date_default_timezone_get calls date_default_timezone_set, which can provide warning
-    $timezone = @date_default_timezone_get();
-    date_default_timezone_set($timezone);
-}
+use PrestaShop\Module\AutoUpgrade\Tools14;
 
 /**
  * Set constants & general values used by the autoupgrade.
@@ -41,13 +36,6 @@ if (function_exists('date_default_timezone_set')) {
  */
 function autoupgrade_init_container($callerFilePath)
 {
-    if (PHP_SAPI === 'cli') {
-        $options = getopt('', ['dir:']);
-        if (isset($options['dir'])) {
-            $_POST['dir'] = $options['dir'];
-        }
-    }
-
     // the following test confirm the directory exists
     if (empty($_POST['dir'])) {
         echo 'No admin directory provided (dir). Update assistant cannot proceed.';
