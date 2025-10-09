@@ -81,6 +81,7 @@ class UpdateModules extends AbstractTask
                     $moduleUnzipperContext = new ModuleUnzipperContext($moduleDownloaderContext->getPathToModuleUpdate(), $moduleInfos['name']);
                     $moduleUnzipper->unzipModule($moduleUnzipperContext);
 
+                    \Module::resetStaticCache();
                     $dbVersion = (new ModuleVersionAdapter())->get($moduleInfos['name']);
                     $module = \Module::getInstanceByName($moduleInfos['name']);
 
